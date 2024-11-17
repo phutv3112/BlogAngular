@@ -55,7 +55,7 @@ namespace BlogAngular.Api.Repositories.Implementation
             var encryptedPrivateKey = user.EncryptedPrivateKey;
             var privateKeyText = EncryptHelper.DecryptData(encryptedPrivateKey, _configuration);
             using var rsa = RSA.Create();
-            rsa.ImportFromPem(privateKeyText.ToCharArray());
+            rsa.ImportFromPem(privateKeyText.AsSpan());
 
             // Create signing credentials using RSA private key
             var signingCredentials = new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256);
