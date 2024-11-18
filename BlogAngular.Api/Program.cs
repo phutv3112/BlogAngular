@@ -1,4 +1,5 @@
-using BlogAngular.Api.Data;
+﻿using BlogAngular.Api.Data;
+using BlogAngular.Api.Helpers;
 using BlogAngular.Api.Models;
 using BlogAngular.Api.Models.Domain;
 using BlogAngular.Api.Repositories.Implementation;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Security.Cryptography;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -127,16 +129,36 @@ builder.Services.ConfigureApplicationCookie(options =>
 //    });
 
 // Jwt Bearer
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+//}).AddJwtBearer(option =>
+//{
+//    option.SaveToken = true;
+//    option.RequireHttpsMetadata = false;
+//    option.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = true,
+//        ValidateAudience = true,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+//        ValidAudience = builder.Configuration["Jwt:Audience"],
+//        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+//    };
+//});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(option =>
+    //options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
 {
-    option.SaveToken = true;
-    option.RequireHttpsMetadata = false;
-    option.TokenValidationParameters = new TokenValidationParameters
+    options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
@@ -144,9 +166,48 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
+        {
+            // Tạo scope mới để lấy UserRepository
+            using var scope = builder.Services.BuildServiceProvider().CreateScope();
+            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+
+            // Lấy userId từ token
+            var userId = TokenHelper.GetUserIdFromToken(token);
+            
+            if (!string.IsNullOrEmpty(userId))
+            {
+                // Truy xuất khóa công khai từ cơ sở dữ liệu dựa trên userId
+                var user = userRepository.FindByIdAsync(userId).Result;
+
+                if (user != null && !string.IsNullOrEmpty(user.PublicKey))
+                {
+                    try
+                    {
+                        var rsaKey = RSA.Create();
+                        string xmlKey = user.PublicKey;
+                        rsaKey.FromXmlString(xmlKey);
+                        return new[] { new RsaSecurityKey(rsaKey) };
+                    }
+                    catch (CryptographicException ex)
+                    {
+                        // Log the exception or handle it as needed
+                        Console.WriteLine($"Error importing PEM: {ex.Message}");
+                        //throw ex;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+                }
+            }
+
+            return Enumerable.Empty<SecurityKey>();
+        }
     };
 });
+
+//builder.Services.AddAuthorization();
 
 var app = builder.Build();
 

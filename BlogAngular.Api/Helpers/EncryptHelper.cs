@@ -44,4 +44,15 @@ public static class EncryptHelper
             }
         }
     }
+
+    public static (string PublicKey, string PrivateKey) GenerateRsaKeyPair(int keySize = 2048)
+    {
+        using (var rsa = new RSACryptoServiceProvider(keySize))
+        {
+            var publicKey = rsa.ToXmlString(false);
+            var privateKey = rsa.ToXmlString(true);
+            return (publicKey, privateKey);
+        }
+    }
+    
 }
