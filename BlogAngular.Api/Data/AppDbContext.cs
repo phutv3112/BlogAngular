@@ -55,10 +55,6 @@ namespace BlogAngular.Api.Data
             };
             builder.Entity<IdentityRole>().HasData(roles);
 
-
-            //var adminPrivateKey = _configuration["AdminPrivateKey"];
-            //var encryptedPrivateKey = EncryptHelper.EncryptData(adminPrivateKey, _configuration);
-
             var (publicKey, privateKey) = EncryptHelper.GenerateRsaKeyPair();
             var encryptedPrivateKey = EncryptHelper.EncryptData(privateKey, _configuration);
 
@@ -75,7 +71,6 @@ namespace BlogAngular.Api.Data
                 SecurityStamp = adminUserId,
                 PasswordHash = new PasswordHasher<AppUser>().HashPassword(null, "Admin@12345"),
                 EncryptedPrivateKey = encryptedPrivateKey,
-                //PublicKey = "-----BEGIN PUBLIC KEY-----\r\nMIIBITANBgkqhkiG9w0BAQEFAAOCAQ4AMIIBCQKCAQBaBRl6wX8qm/gM9+wimMy6\r\nJNVaqboZZZdcQIEkoUTMnjIwKun1rhCs/QxEUAG0UMMzOTbDK1js3dk0VfSz4t8I\r\nwd6/G4a6vt5eU55V0MGWRZHxDpwWrXwYA7LL63kzHZNaX+Z+9tgfN93tfdhmkNij\r\nrgIdNhdc+XCJItZaUUgXEjDabjsZWileKBoVOtg0FQ6hMfIlABKDHPzHE0+Go3Fo\r\nlR+jpNbUrLvOfcVNNOazayvHnFbpbtn/Kg3bwSekevtj7ImKeIzGbTVGDML+aHDU\r\nIzi+n/A9FgOkqX37E0LvbghaPwskORNAk1boALn73qHUsuSTg3w/oQ25h1lrR7aD\r\nAgMBAAE=\r\n-----END PUBLIC KEY-----"
                 PublicKey = publicKey
             };
 

@@ -184,9 +184,10 @@ builder.Services.AddAuthentication(options =>
                 {
                     try
                     {
-                        using var rsa = RSA.Create();
-                        rsa.ImportFromPem(user.PublicKey.AsSpan());
-                        return new[] { new RsaSecurityKey(rsa) };
+                        var rsaKey = RSA.Create();
+                        string xmlKey = user.PublicKey;
+                        rsaKey.FromXmlString(xmlKey);
+                        return new[] { new RsaSecurityKey(rsaKey) };
                     }
                     catch (CryptographicException ex)
                     {
@@ -205,6 +206,8 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
+
+//builder.Services.AddAuthorization();
 
 var app = builder.Build();
 

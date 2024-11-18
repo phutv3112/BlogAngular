@@ -49,30 +49,10 @@ public static class EncryptHelper
     {
         using (var rsa = new RSACryptoServiceProvider(keySize))
         {
-            var publicKey = ExportPublicKey(rsa);
-            var privateKey = ExportPrivateKey(rsa);
+            var publicKey = rsa.ToXmlString(false);
+            var privateKey = rsa.ToXmlString(true);
             return (publicKey, privateKey);
         }
     }
-    // Hàm xuất public key dưới định dạng PEM
-    public static string ExportPublicKey(RSACryptoServiceProvider rsa)
-    {
-        var publicKey = rsa.ExportRSAPublicKey();
-        StringBuilder publicKeyBuilder = new StringBuilder();
-        publicKeyBuilder.AppendLine("-----BEGIN PUBLIC KEY-----");
-        publicKeyBuilder.AppendLine(Convert.ToBase64String(publicKey));
-        publicKeyBuilder.AppendLine("-----END PUBLIC KEY-----");
-        return publicKeyBuilder.ToString();
-    }
-
-    // Hàm xuất private key dưới định dạng PEM
-    public static string ExportPrivateKey(RSACryptoServiceProvider rsa)
-    {
-        var privateKey = rsa.ExportRSAPrivateKey();
-        StringBuilder privateKeyBuilder = new StringBuilder();
-        privateKeyBuilder.AppendLine("-----BEGIN RSA PRIVATE KEY-----");
-        privateKeyBuilder.AppendLine(Convert.ToBase64String(privateKey));
-        privateKeyBuilder.AppendLine("-----END RSA PRIVATE KEY-----");
-        return privateKeyBuilder.ToString();
-    }
+    
 }
