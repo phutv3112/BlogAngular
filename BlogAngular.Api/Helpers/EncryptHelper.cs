@@ -14,6 +14,7 @@ public static class EncryptHelper
             var iv = aes.IV;
             using (var encryptor = aes.CreateEncryptor())
             {
+                if(data == null) throw new Exception("Data invalid.");
                 var dataBytes = Encoding.UTF8.GetBytes(data);
                 var encryptedData = encryptor.TransformFinalBlock(dataBytes, 0, dataBytes.Length);
 

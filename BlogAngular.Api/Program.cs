@@ -77,6 +77,10 @@ builder.Services.AddScoped<GoogleAuthService>();
 builder.Services.AddScoped<FacebookAuthService>();
 builder.Services.AddHttpClient();
 
+builder.Services.AddMemoryCache();
+
+builder.Services.AddSingleton<CacheService>();
+
 //Email service
 builder.Services.AddOptions();
 var mailSettings = builder.Configuration.GetSection("MailSettings");
@@ -147,6 +151,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
+
 
 var app = builder.Build();
 
