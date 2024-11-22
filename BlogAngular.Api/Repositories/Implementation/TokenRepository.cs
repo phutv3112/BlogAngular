@@ -54,7 +54,7 @@ namespace BlogAngular.Api.Repositories.Implementation
             // Retrieve private key from user data
             var encryptedPrivateKey = user.EncryptedPrivateKey;
 
-            var privateKeyXml = EncryptHelper.DecryptData(encryptedPrivateKey, _configuration); ;
+            var privateKeyXml = EncryptHelper.DecryptData(encryptedPrivateKey, _configuration); 
             var rsa = RSA.Create();
             rsa.FromXmlString(privateKeyXml);
 

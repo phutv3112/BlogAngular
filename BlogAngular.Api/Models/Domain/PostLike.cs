@@ -6,5 +6,6 @@
         public BlogPost Post { get; set; }
         public string UserId { get; set; }
         public AppUser User { get; set; }
+        public bool IsUnLiked { get; set; } = false;
     }
 }
