@@ -15,12 +15,15 @@ namespace BlogAngular.Api.Controllers
     {
         private readonly IBlogPostRepository _blogPostRepository;
         private readonly ICategoryRepository _categoryRepository;
+        private readonly ILikeRepository _likeRepository;
         private readonly IMapper _mapper;
 
-        public BlogPostsController(IBlogPostRepository blogPostRepository, ICategoryRepository categoryRepository, IMapper mapper)
+        public BlogPostsController(IBlogPostRepository blogPostRepository, ICategoryRepository categoryRepository, 
+            IMapper mapper, ILikeRepository likeRepository)
         {
             _blogPostRepository = blogPostRepository;
             _categoryRepository = categoryRepository;
+            _likeRepository = likeRepository;
             _mapper = mapper;
         }
         [HttpGet]
@@ -95,6 +98,54 @@ namespace BlogAngular.Api.Controllers
             var blogPostDtos = _mapper.Map<IEnumerable<BlogPostDto>>(result);
             return Ok(blogPostDtos);
         }
+        [HttpGet("like-post/{url}")]
+        public async Task<IActionResult> LikeBlogPost([FromQuery] string userId, [FromRoute] string url)
+        {
+            if(string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(url))
+            {
+                return BadRequest();
+            }
+            var blogPost = await _blogPostRepository.GetByUrlAsync(url);
+            if(blogPost == null)
+            {
+                return NotFound("Blog not found");
+            }
+            var result = await _likeRepository.LikePost(userId, blogPost.Id);
+            return Ok(result);
+        }
+
+        [HttpGet("get-like-post/{url}")]
+        public async Task<IActionResult> GetLikeBlogPost([FromRoute] string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return BadRequest();
+            }
+            var blogPost = await _blogPostRepository.GetByUrlAsync(url);
+            if (blogPost == null)
+            {
+                return NotFound("Blog not found");
+            }
+            var result = await _likeRepository.CountLikeByPost(blogPost.Id);
+            return Ok(result);
+        }
+
+        [HttpGet("check-liked/{url}")]
+        public async Task<IActionResult> CheckLikedBlogPost([FromQuery] string userId,[FromRoute] string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return BadRequest();
+            }
+            var blogPost = await _blogPostRepository.GetByUrlAsync(url);
+            if (blogPost == null)
+            {
+                return NotFound("Blog not found");
+            }
+            var result = await _likeRepository.CheckLiked(userId, blogPost.Id);
+            return Ok(result);
+        }
+
         [HttpGet("{url}")]
         [Authorize]
         public async Task<IActionResult> GetByUrlAsync([FromRoute]string url)
