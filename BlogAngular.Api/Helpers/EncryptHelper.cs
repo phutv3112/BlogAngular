@@ -10,7 +10,7 @@ public static class EncryptHelper
         using (var aes = Aes.Create())
         {
             aes.Key = encryptionKey;
-            aes.GenerateIV();
+            aes.GenerateIV();   // Initialization Vector - Vector khởi tạo
             var iv = aes.IV;
             using (var encryptor = aes.CreateEncryptor())
             {

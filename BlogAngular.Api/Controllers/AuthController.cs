@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using System.Text.Encodings.Web;
 using System.Text;
 using BlogAngular.Api.Models.Domain;
+using BlogAngular.Api.Helpers;
 
 namespace BlogAngular.Api.Controllers
 {
@@ -28,10 +29,12 @@ namespace BlogAngular.Api.Controllers
         private readonly IConfiguration _configuration;
         private readonly FacebookAuthService _facebookAuthService;
         private readonly IEmailSender _emailSender;
+        private readonly CacheService _cacheService;
 
         public AuthController(UserManager<AppUser> userManager, ITokenRepository tokenRepository, 
             GoogleAuthService googleAuthService, IHttpClientFactory httpClientFactory, 
-            IConfiguration configuration, FacebookAuthService facebookAuthService, IEmailSender emailSender)
+            IConfiguration configuration, FacebookAuthService facebookAuthService, 
+            IEmailSender emailSender, CacheService cacheService)
         {
             _userManager = userManager;
             _tokenRepository = tokenRepository;
@@ -40,15 +43,27 @@ namespace BlogAngular.Api.Controllers
             _configuration = configuration;
             _facebookAuthService = facebookAuthService;
             _emailSender = emailSender;
+            _cacheService = cacheService;
         }
+        private string GetUsernameFromEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return string.Empty;
 
+            var atIndex = email.IndexOf('@');
+            return atIndex > 0 ? email.Substring(0, atIndex) : email;
+        }
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto request)
         {
+            var (publicKey, privateKey) = EncryptHelper.GenerateRsaKeyPair();
+            var encryptedPrivateKey = EncryptHelper.EncryptData(privateKey, _configuration);
             var user = new AppUser
             {
                 Email = request.Email?.Trim(),
-                UserName = request.Email?.Trim()
+                UserName = GetUsernameFromEmail(request.Email?.Trim()),
+                EncryptedPrivateKey = encryptedPrivateKey,
+                PublicKey = publicKey
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -57,12 +72,12 @@ namespace BlogAngular.Api.Controllers
                 result = await _userManager.AddToRoleAsync(user, "Reader");
                 if (result.Succeeded)
                 {
-                    var token = _tokenRepository.CreateJwtToken(user, new List<string> { "Reader" });
+                    var token = await _tokenRepository.CreateJwtToken(user, new List<string> { "Reader" });
                     var response = new LoginResponseDto
                     {
                         Email = request.Email,
                         Roles = new List<string> { "Reader" },
-                        Token = token
+                        TokenPair = token
                     };
                     return Ok(response);
                 }
@@ -70,6 +85,82 @@ namespace BlogAngular.Api.Controllers
 
             var errors = result.Errors.Select(e => e.Description).ToList();
             return BadRequest(new { Errors = errors });
+        }
+
+        [HttpPost("register-mfa")]
+        public async Task<IActionResult> RegisterMfa(RegisterRequestDto request)
+        {
+            var userFound = await _userManager.FindByEmailAsync(request.Email);
+            if (userFound is null)
+            {
+                var (publicKey, privateKey) = EncryptHelper.GenerateRsaKeyPair();
+                var encryptedPrivateKey = EncryptHelper.EncryptData(privateKey, _configuration);
+                var user = new AppUser
+                {
+                    Email = request.Email?.Trim(),
+                    UserName = GetUsernameFromEmail(request.Email?.Trim()),
+                    EncryptedPrivateKey = encryptedPrivateKey,
+                    PublicKey = publicKey,
+                    EmailConfirmed = false,
+                    LockoutEnabled = false
+                };
+
+                var result = await _userManager.CreateAsync(user, request.Password);
+                if (result.Succeeded)
+                {
+                    result = await _userManager.AddToRoleAsync(user, "Reader");
+                    if (result.Succeeded)
+                    {
+                        var otp = StringExtensions.GenerateSecureRandomNumericCode();
+                        var emailBody = StringExtensions.GetOtpEmailTemplate(otp);
+
+                        await _emailSender.SendEmailAsync(request.Email, "Your OTP Code", emailBody);
+                        _cacheService.SetCacheWithExpiration(request.Email, otp, TimeSpan.FromMinutes(5));
+                        return Ok("Send mail successfully!");
+                    }
+                }
+                return BadRequest("Register failed. Please try again!");
+            }
+            else
+            {
+                return BadRequest("Email already exist!");
+            }
+        }
+        [HttpPost("register-mfa-verify")]
+        public async Task<IActionResult> RegisterMfaVerify(OtpDto request)
+        {
+            var otp = _cacheService.GetCache<string>(request.Email);
+            var valid = _cacheService.IsCacheKeyValid(request.Email);
+
+            if (valid)
+            {
+                if (otp == request.Otp)
+                {
+                    var user = await _userManager.FindByEmailAsync(request.Email);
+                    
+                    user.EmailConfirmed = true;
+                    await _userManager.UpdateAsync(user);
+                    var roles = await _userManager.GetRolesAsync(user);
+
+                    var token = await _tokenRepository.CreateJwtToken(user, roles.ToList());
+                    var response = new LoginResponseDto
+                    {
+                        Email = request.Email,
+                        Roles = roles.ToList(),
+                        TokenPair = token
+                    };
+                    _cacheService.RemoveCache(request.Email);
+                    return Ok(response);
+                }
+                else
+                {
+                    return BadRequest("OTP is incorrect!");
+                }
+            }
+            else
+            {
+                return BadRequest("OTP is expired!");
+            }
         }
 
         [HttpPost("login")]
@@ -81,28 +172,209 @@ namespace BlogAngular.Api.Controllers
                 var check = await _userManager.CheckPasswordAsync(user, request.Password);
                 if (check)
                 {
-                    var roles = await _userManager.GetRolesAsync(user);
-
-                    var token = _tokenRepository.CreateJwtToken(user, roles.ToList());
-                    var response = new LoginResponseDto
+                    if (user.EmailConfirmed)
                     {
-                        Email = request.Email,
-                        Roles = roles.ToList(),
-                        Token = token
-                    };
-                    return Ok(response);
+                        if (user.LockoutEnabled)
+                        {
+                            return BadRequest("Account is locked!");
+                        }
+                        var roles = await _userManager.GetRolesAsync(user);
+                        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
+                        await _userManager.UpdateAsync(user);
+
+                        var token = await _tokenRepository.CreateJwtToken(user, roles.ToList());
+                        var response = new LoginResponseDto
+                        {
+                            Email = request.Email,
+                            Roles = roles.ToList(),
+                            TokenPair = token
+                        };
+                        return Ok(response);
+                    }
+                    else
+                    {
+                        var otp = StringExtensions.GenerateSecureRandomNumericCode();
+                        var emailBody = StringExtensions.GetOtpEmailTemplate(otp);
+
+                        await _emailSender.SendEmailAsync(request.Email, "Your OTP Code", emailBody);
+                        _cacheService.SetCacheWithExpiration(request.Email, otp, TimeSpan.FromMinutes(5));
+                        return BadRequest("Please open your mail to verify!");
+                    }
+
                 }
                 else
                 {
                     return BadRequest("Password is incorrect!");
                 }
+
             }   
             else
             {
                 return BadRequest("User not found!");
             }
-            //ModelState.AddModelError("", "Email or password incorrect!");
-            //return ValidationProblem(ModelState);
+        }
+
+        [HttpPost("login-mfa")]
+        public async Task<IActionResult> LoginMfa(LoginRequestDto request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user is not null)
+            {
+                var check = await _userManager.CheckPasswordAsync(user, request.Password);
+                if (check)
+                {
+                    var otp = StringExtensions.GenerateSecureRandomNumericCode();
+                    var emailBody = StringExtensions.GetOtpEmailTemplate(otp);
+                    //await _emailSender.SendEmailAsync(request.Email, "OTP", $"Your OTP is: {otp}");
+                    await _emailSender.SendEmailAsync(request.Email, "Your OTP Code", emailBody);
+                    _cacheService.SetCacheWithExpiration(request.Email, otp, TimeSpan.FromMinutes(5));
+                    return Ok(check);
+                }
+                else
+                {
+                    return BadRequest("Password is incorrect!");
+                }
+            }
+            else
+            {
+                return BadRequest("User not found!");
+            }
+        }
+
+        [HttpPost]
+        [Route("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromQuery(Name = "uid")] string userId, [FromQuery(Name = "rt")] string refreshToken)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                if (user.RefreshToken != refreshToken)
+                {
+                    return BadRequest("Refresh token not match!");
+                }
+                else
+                {
+                    if (user.RefreshTokenExpiryTime < DateTime.UtcNow)
+                    {
+                        return BadRequest("Refresh token expired, please login!");
+                    }
+                    else
+                    {
+                        var roles = await _userManager.GetRolesAsync(user);
+                        var tokenPair = await _tokenRepository.CreateJwtToken(user, roles.ToList());
+
+                        var response = new LoginResponseDto
+                        {
+                            Email = user.Email,
+                            Roles = roles.ToList(),
+                            TokenPair = tokenPair
+                        };
+                        return Ok(response);
+                    }
+                }
+
+            }
+            return BadRequest("User not exist in system!");
+        }
+        [HttpPost("lock-account")]
+        public async Task<IActionResult> LockAccount(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user != null)
+            {
+                user.LockoutEnabled = true;
+                await _userManager.UpdateAsync(user);
+                return Ok("Lock account successfully!");
+            }
+            else
+            {
+               return BadRequest("User not found!");
+            }
+        }
+
+        [HttpPost("unlock-account")]
+        public async Task<IActionResult> UnLockAccount(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user != null)
+            {
+                var otp = StringExtensions.GenerateSecureRandomNumericCode();
+                var emailBody = StringExtensions.GetOtpEmailTemplate(otp);
+                await _emailSender.SendEmailAsync(email, "Your OTP Code", emailBody);
+                _cacheService.SetCacheWithExpiration(email, otp, TimeSpan.FromMinutes(5));
+                return Ok("Send Otp to unclock account successfully!");
+            }
+            else
+            {
+                return BadRequest("User not found!");
+            }
+        }
+
+        [HttpPost("unlock-account-verify")]
+        public async Task<IActionResult> UnLockAccountVerify(OtpDto request)
+        {
+            var otp = _cacheService.GetCache<string>(request.Email);
+            var valid = _cacheService.IsCacheKeyValid(request.Email);
+            if (valid)
+            {
+                if (otp == request.Otp)
+                {
+                    var user = await _userManager.FindByEmailAsync(request.Email);
+                    if (user != null)
+                    {
+                        user.LockoutEnabled = false;
+                        await _userManager.UpdateAsync(user);
+                        _cacheService.RemoveCache(request.Email);
+                    }
+                    return Ok("Unlock successfully, please login again!");
+                }
+                else
+                {
+                    return BadRequest("OTP is incorrect!");
+                }
+            }
+            else
+            {
+                return BadRequest("OTP is expired!");
+            }
+        }
+
+        [HttpPost("login-mfa-verify")]
+        public async Task<IActionResult> LoginMfaVerify(OtpDto request)
+        {
+            var otp = _cacheService.GetCache<string>(request.Email);
+            var valid = _cacheService.IsCacheKeyValid(request.Email);
+            if (valid)
+            {
+                if (otp == request.Otp)
+                {
+                    var user = await _userManager.FindByEmailAsync(request.Email);
+                    if(user != null && user.EmailConfirmed == false)
+                    {
+                        user.EmailConfirmed = true;
+                        await _userManager.UpdateAsync(user);
+                    }
+                    var roles = await _userManager.GetRolesAsync(user);
+
+                    var token = await _tokenRepository.CreateJwtToken(user, roles.ToList());
+                    var response = new LoginResponseDto
+                    {
+                        Email = request.Email,
+                        Roles = roles.ToList(),
+                        TokenPair = token
+                    };
+                    _cacheService.RemoveCache(request.Email);
+                    return Ok(response);
+                }
+                else
+                {
+                    return BadRequest("OTP is incorrect!");
+                }
+            }
+            else
+            {
+                return BadRequest("OTP is expired!");
+            }
         }
 
         [HttpPost("google-login")]
@@ -143,12 +415,12 @@ namespace BlogAngular.Api.Controllers
                 }
                 var roles = await _userManager.GetRolesAsync(userFound);
 
-                var token = _tokenRepository.CreateJwtToken(userFound, roles.ToList());
+                var token = await _tokenRepository.CreateJwtToken(userFound, roles.ToList());
                 var response = new LoginResponseDto
                 {
                     Email = payload.Email,
                     Roles = roles.ToList(),
-                    Token = token
+                    TokenPair = token
                 };
 
                 return Ok(response);
@@ -209,12 +481,12 @@ namespace BlogAngular.Api.Controllers
                 }
                 var roles = await _userManager.GetRolesAsync(userFound);
 
-                var token = _tokenRepository.CreateJwtToken(userFound, roles.ToList());
+                var token = await _tokenRepository.CreateJwtToken(userFound, roles.ToList());
                 var response = new LoginResponseDto
                 {
                     Email = userInfo.Email,
                     Roles = roles.ToList(),
-                    Token = token
+                    TokenPair = token
                 };
 
                 return Ok(response);
@@ -233,37 +505,60 @@ namespace BlogAngular.Api.Controllers
             {
                 return BadRequest(new { message = "Email invalid!" });
             }
-            var clientAddress = _configuration["BaseAddress:ClientAddress"];
-            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
-            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var frontendResetPasswordUrl = $"{clientAddress}/account/reset-password?code={code}&email={forgotPasswordDto.Email}";
+            var otp = StringExtensions.GenerateSecureRandomNumericCode();
+            var emailBody = StringExtensions.GetOtpEmailTemplate(otp);
+            await _emailSender.SendEmailAsync(user.Email, "Your OTP Code", emailBody);
+            _cacheService.SetCacheWithExpiration(user.Email, otp, TimeSpan.FromMinutes(5));
 
-            await _emailSender.SendEmailAsync(
-                forgotPasswordDto.Email,
-                "Reset Password",
-                $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(frontendResetPasswordUrl)}'>clicking here</a>."
-            );
-
-            return Ok(new { message = "Open your email and click to reset password!" });
+            return Ok(new { message = "Send Otp successfully!" });
+        }
+        [HttpPost("verify-forgot-password")]
+        public IActionResult VerifyForgotPassword(OtpDto request)
+        {
+            try
+            {
+                var otp = _cacheService.GetCache<string>(request.Email);
+                var valid = _cacheService.IsCacheKeyValid(request.Email);
+                if (valid)
+                {
+                    if (otp == request.Otp)
+                    {
+                        _cacheService.RemoveCache(request.Email);
+                        return Ok("Verify successfully!");
+                    }
+                    else
+                    {
+                        return BadRequest("OTP is incorrect!");
+                    }
+                }
+                else
+                {
+                    return BadRequest("OTP is expired!");
+                }
+            }
+            catch (Exception)
+            {
+                return BadRequest("Send mail to verify failure!");
+            }
         }
         [HttpPost]
         [Route("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto, [FromQuery(Name = "email")] string email, [FromQuery(Name = "code")] string code)
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto, [FromQuery(Name = "email")] string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null || code == null)
+            if (user == null)
             {
-                return BadRequest();
+                return BadRequest("User not exist");
             }
-            var decode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
-            var result = await _userManager.ResetPasswordAsync(user, decode, resetPasswordDto.Password);
+            user.PasswordHash = new PasswordHasher<AppUser>().HashPassword(null, resetPasswordDto.Password);
+            var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
                 return Ok(new { message = "Reset password successfully!" });
             }
             else
             {
-                return BadRequest();
+                return BadRequest("Reset password fail");
             }
         }
     }

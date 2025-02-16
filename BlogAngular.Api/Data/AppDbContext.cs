@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace BlogAngular.Api.Data
 {
@@ -24,6 +25,23 @@ namespace BlogAngular.Api.Data
                     entityType.SetTableName(tableName.Substring(6));
                 }
             }
+
+            builder.Entity<BlogPost>()
+            .HasIndex(u => u.UrlHandle)
+            .IsUnique();
+
+            builder.Entity<Category>()
+            .HasIndex(u => u.UrlHandle)
+            .IsUnique();
+
+            builder.Entity<Comment>()
+                .HasOne(c => c.User)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.NoAction);
+            builder.Entity<PostLike>()
+                .HasOne(pl => pl.User)
+                .WithMany(u => u.PostLikes)
+                .HasForeignKey(pl => pl.UserId).OnDelete(DeleteBehavior.NoAction);
 
             var adminRoleId = "1e4be785-839a-4a52-a3b9-455f3e289c44";
             var readerRoleId = "1e4be785-839a-4a52-a3b9-455f3e289c45";

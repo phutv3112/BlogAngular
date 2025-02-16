@@ -29,7 +29,7 @@ namespace BlogAngular.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string fileName, [FromForm] string title)
+        public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string title)
         {
             ValidateFileUpload(file);
             if (ModelState.IsValid)
@@ -37,7 +37,7 @@ namespace BlogAngular.Api.Controllers
                 var blogImage = new BlogImage
                 {
                     Title = title,
-                    FileName = fileName,
+                    FileName = file.FileName,
                     FileExtension = Path.GetExtension(file.FileName).ToLower(),
                     CreatedDate = DateTime.Now,
                     UpdatedDate = DateTime.Now
@@ -59,7 +59,7 @@ namespace BlogAngular.Api.Controllers
             {
                 ModelState.AddModelError("file", "Unsupported file format!");
             }
-            if (file.Length > 10485760)
+            if (file.Length > 104857600)
             {
                 ModelState.AddModelError("file", "File size must be less than 10MB");
             }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.Configuration.Annotations;
+using BlogAngular.Api.Helpers;
 using BlogAngular.Api.Models.Domain;
 using BlogAngular.Api.Models.Dtos.CategoryDtos;
 using BlogAngular.Api.Repositories.Interface;
@@ -30,20 +31,23 @@ namespace BlogAngular.Api.Controllers
             return Ok(categoryDtos);
         }
         [HttpGet("categories-count-posts")]
-        public async Task<IActionResult> GetCategoriesAndCountPosts()
+        public async Task<IActionResult> GetCategoriesAndCountPosts([FromQuery] int? pageSize)
         {
-            var result = await _categoryRepository.GetCategoriesAndCountPosts();
+            var result = await _categoryRepository.GetCategoriesAndCountPosts(pageSize);
             return Ok(result);
         }
         [HttpPost]
-        [Authorize(Roles = "Admin, Writer")]
+        [Authorize(Roles= "Admin")]
         public async Task<IActionResult> CreateAsync(CreateCategoryRequestDto requestDto)
         {
+            var urlHandle = StringExtensions.GenerateUrlHandle(requestDto.Name, "cate");
+
             var category = new Category
             {
                 Name = requestDto.Name,
-                UrlHandle = requestDto.UrlHandle
+                UrlHandle = urlHandle
             };
+
             var result = await _categoryRepository.CreateAsync(category);
             var categoryDto = _mapper.Map<CategoryDto>(result);
             return Ok(categoryDto);
@@ -65,14 +69,16 @@ namespace BlogAngular.Api.Controllers
         }
         [HttpPut]
         [Route("{id}")]
-        [Authorize(Roles = "Admin, Writer")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateAsync(Guid id, UpdateCategoryRequestDto requestDto)
         {
+            var urlHandle = StringExtensions.GenerateUrlHandle(requestDto.Name, "cate");
+
             var category = new Category
             {
                 Id = id,
                 Name = requestDto.Name,
-                UrlHandle = requestDto.UrlHandle
+                UrlHandle = urlHandle
             };
             category = await _categoryRepository.UpdateAsync(category);
             if(category == null)
@@ -83,7 +89,7 @@ namespace BlogAngular.Api.Controllers
             return Ok(categoryDto);
         }
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, Writer")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>DeleteCategory(Guid id)
         {
             var category = await _categoryRepository.FindByIdAsync(id);

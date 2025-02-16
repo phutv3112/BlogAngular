@@ -38,7 +38,7 @@ namespace BlogAngular.Api.Repositories.Implementation
             return await _context.Categories.FindAsync(id);
 
         }
-        public async Task<List<CategoryCountPosts>> GetCategoriesAndCountPosts() {
+        public async Task<List<CategoryCountPosts>> GetCategoriesAndCountPosts(int? pageSize = 5) {
             var categories = _context.Categories.Include(c => c.BlogPosts).ToList();
             var result = new List<CategoryCountPosts>();
             foreach (var category in categories)
@@ -47,7 +47,7 @@ namespace BlogAngular.Api.Repositories.Implementation
                 result.Add(new CategoryCountPosts { CateId = category.Id ,Name = category.Name, CountPosts = countPosts });
             }
             result = result.OrderByDescending(c => c.CountPosts).ToList();
-            result = result.Take(8).ToList();
+            result = result.Take(pageSize ?? 5).ToList();
             return result;
         }
         public async Task<IEnumerable<Category>> GetAllAsync(string? query = null, string? sortBy = null, string? sortDirection = null,

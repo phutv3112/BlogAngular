@@ -12,6 +12,6 @@ namespace BlogAngular.Api.Repositories.Interface
         Task<int> CountCategories();
         Task<Category?> UpdateAsync(Category category);
         Task Delete(Category category);
-        Task<List<CategoryCountPosts>> GetCategoriesAndCountPosts();
+        Task<List<CategoryCountPosts>> GetCategoriesAndCountPosts(int? pageSize = 10);
     }
 }

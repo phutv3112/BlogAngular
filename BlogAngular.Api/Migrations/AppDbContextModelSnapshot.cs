@@ -81,6 +81,12 @@ namespace BlogAngular.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -112,20 +118,20 @@ namespace BlogAngular.Api.Migrations
                             Id = "11872d42-f137-430d-a396-46498fc4e3a7",
                             AccessFailedCount = 0,
                             ConcurrencyStamp = "11872d42-f137-430d-a396-46498fc4e3a7",
-                            CreatedDate = new DateTime(2024, 11, 22, 13, 44, 10, 518, DateTimeKind.Utc).AddTicks(8911),
+                            CreatedDate = new DateTime(2025, 1, 4, 16, 17, 56, 494, DateTimeKind.Utc).AddTicks(4708),
                             Email = "admin@gmail.com",
                             EmailConfirmed = false,
-                            EncryptedPrivateKey = "4XA7UhPJ5BSdRnhiOamoRA==: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",
+                            EncryptedPrivateKey = "+tpZMZY5DPMpesOhjMnjMw==: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",
                             FullName = "Admin",
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@GMAIL.COM",
                             NormalizedUserName = "ADMIN@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEBwuTgKrWG3Rl9Tc1aN+ujkXNuLABx7HJCQlWc75Jl60ved4L/UVkeOEzL9QJLv8Fg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEFleozjHoDp4yGxS4z0Ln1LOTzrLMETFeJfUC8L4oelgobG72yKr4NRYM4XGVD1Y/A==",
                             PhoneNumberConfirmed = false,
-                            PublicKey = "<RSAKeyValue><Modulus>3mos4NdjIzOZXV/6TvwQX1gbmmN5v3VIxxa4F1rjyYYG1LkL4FHIolnXaWuL7N/FF8lMja0cQNvux+qW+GIpuBj12d8zWdh92IXqH2L25xKKz7ch+pAZifpxisfM/yxlb/kQiVIYd/wqihIvHJOYcWrm2d+yXZ/Rvk4ka/lZHRTJawkksWG5dc/LNiYYVaWRHoBi9M/ndrnivcYg1Tusxe7+BfJmORll93XCJ1qNpmhhA7tvrRGKYKwXWKOXZhnidQipu0kPV0uXb0lAQz67+60RcztLvci2pX9768PC0Cj3tdHdEVacOUU0L0xr24dpa6McXTDeUJzEn1jurkTTMQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>",
+                            PublicKey = "<RSAKeyValue><Modulus>12a7MZMbqqDnLYAbY9yTL5HFm3X6RtQv8xpJj6WJemnK4Y4O8GFUXAKU5WRVJvskvBvI9wT5qqCkaxfks1YRT+uHL4XY+chfzQrnBNpUoriYvRgJnGiDBVQadRLQYDNI7RXhlQlZdY0HlXxdG6CZWnW0xv1Am/tRAZu9KVF0VDmJkUvtWWj1lXFImf6+qLtZdjY1r97YCi5PWxHDbKSokn/uJdnYGRQuzIsuVLXkdY/162+3fPLnyyi/3M2AmGlcQcaf3PTQd6ymRBJzqvgT4cPvr0mNjI1Fk8f6xwU8A69LKVVJKWnRjtRSurK1fMJDVbbje1pZ7u1n5KXtBiIXQQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>",
                             SecurityStamp = "11872d42-f137-430d-a396-46498fc4e3a7",
                             TwoFactorEnabled = false,
-                            UpdatedDate = new DateTime(2024, 11, 22, 13, 44, 10, 518, DateTimeKind.Utc).AddTicks(8917),
+                            UpdatedDate = new DateTime(2025, 1, 4, 16, 17, 56, 494, DateTimeKind.Utc).AddTicks(4714),
                             UserName = "admin@gmail.com"
                         });
                 });
@@ -169,9 +175,9 @@ namespace BlogAngular.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Author")
+                    b.Property<string>("AuthorId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -203,9 +209,14 @@ namespace BlogAngular.Api.Migrations
 
                     b.Property<string>("UrlHandle")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("UrlHandle")
+                        .IsUnique();
 
                     b.ToTable("BlogPosts");
                 });
@@ -228,9 +239,12 @@ namespace BlogAngular.Api.Migrations
 
                     b.Property<string>("UrlHandle")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UrlHandle")
+                        .IsUnique();
 
                     b.ToTable("Categories");
                 });
@@ -251,8 +265,8 @@ namespace BlogAngular.Api.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Subject")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("datetime2");
@@ -264,6 +278,8 @@ namespace BlogAngular.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BlogPostId");
+
+                    b.HasIndex("ParentId");
 
                     b.HasIndex("UserId");
 
@@ -527,6 +543,17 @@ namespace BlogAngular.Api.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("BlogAngular.Api.Models.Domain.BlogPost", b =>
+                {
+                    b.HasOne("BlogAngular.Api.Models.Domain.AppUser", "Author")
+                        .WithMany("BlogPosts")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("BlogAngular.Api.Models.Domain.Comment", b =>
                 {
                     b.HasOne("BlogAngular.Api.Models.Domain.BlogPost", "BlogPost")
@@ -535,13 +562,19 @@ namespace BlogAngular.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("BlogAngular.Api.Models.Domain.Comment", "Parent")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentId");
+
                     b.HasOne("BlogAngular.Api.Models.Domain.AppUser", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("BlogPost");
+
+                    b.Navigation("Parent");
 
                     b.Navigation("User");
                 });
@@ -557,7 +590,7 @@ namespace BlogAngular.Api.Migrations
                     b.HasOne("BlogAngular.Api.Models.Domain.AppUser", "User")
                         .WithMany("PostLikes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Post");
@@ -652,6 +685,8 @@ namespace BlogAngular.Api.Migrations
 
             modelBuilder.Entity("BlogAngular.Api.Models.Domain.AppUser", b =>
                 {
+                    b.Navigation("BlogPosts");
+
                     b.Navigation("Comments");
 
                     b.Navigation("PostLikes");
@@ -664,6 +699,11 @@ namespace BlogAngular.Api.Migrations
                     b.Navigation("PostLikes");
 
                     b.Navigation("PostTags");
+                });
+
+            modelBuilder.Entity("BlogAngular.Api.Models.Domain.Comment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("BlogAngular.Api.Models.Domain.Tag", b =>

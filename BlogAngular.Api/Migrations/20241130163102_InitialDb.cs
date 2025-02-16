@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlogAngular.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDb : Migration
+    public partial class InitialDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -31,33 +31,12 @@ namespace BlogAngular.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BlogPosts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ShortDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FeaturedImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UrlHandle = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PublishedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Author = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsVisible = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BlogPosts", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UrlHandle = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlHandle = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -126,30 +105,6 @@ namespace BlogAngular.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BlogPostCategory",
-                columns: table => new
-                {
-                    BlogPostsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CategoriesId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BlogPostCategory", x => new { x.BlogPostsId, x.CategoriesId });
-                    table.ForeignKey(
-                        name: "FK_BlogPostCategory_BlogPosts_BlogPostsId",
-                        column: x => x.BlogPostsId,
-                        principalTable: "BlogPosts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BlogPostCategory_Categories_CategoriesId",
-                        column: x => x.CategoriesId,
-                        principalTable: "Categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RoleClaims",
                 columns: table => new
                 {
@@ -171,83 +126,27 @@ namespace BlogAngular.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PostTags",
+                name: "BlogPosts",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TagId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PostTags", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PostTags_BlogPosts_PostId",
-                        column: x => x.PostId,
-                        principalTable: "BlogPosts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PostTags_Tags_TagId",
-                        column: x => x.TagId,
-                        principalTable: "Tags",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Comments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    BlogPostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Subject = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShortDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FeaturedImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlHandle = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    PublishedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    IsVisible = table.Column<bool>(type: "bit", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.PrimaryKey("PK_BlogPosts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Comments_BlogPosts_BlogPostId",
-                        column: x => x.BlogPostId,
-                        principalTable: "BlogPosts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Comments_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PostLikes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PostLikes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PostLikes_BlogPosts_PostId",
-                        column: x => x.PostId,
-                        principalTable: "BlogPosts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PostLikes_Users_UserId",
-                        column: x => x.UserId,
+                        name: "FK_BlogPosts_Users_AuthorId",
+                        column: x => x.AuthorId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -338,6 +237,117 @@ namespace BlogAngular.Api.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "BlogPostCategory",
+                columns: table => new
+                {
+                    BlogPostsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CategoriesId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BlogPostCategory", x => new { x.BlogPostsId, x.CategoriesId });
+                    table.ForeignKey(
+                        name: "FK_BlogPostCategory_BlogPosts_BlogPostsId",
+                        column: x => x.BlogPostsId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_BlogPostCategory_Categories_CategoriesId",
+                        column: x => x.CategoriesId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Comments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    BlogPostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Comments_BlogPosts_BlogPostId",
+                        column: x => x.BlogPostId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Comments_Comments_ParentId",
+                        column: x => x.ParentId,
+                        principalTable: "Comments",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Comments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PostLikes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    IsUnLiked = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PostLikes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PostLikes_BlogPosts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PostLikes_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PostTags",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PostId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TagId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PostTags", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PostTags_BlogPosts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "BlogPosts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PostTags_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
@@ -351,7 +361,7 @@ namespace BlogAngular.Api.Migrations
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "AccessFailedCount", "Address", "ConcurrencyStamp", "CreatedDate", "Email", "EmailConfirmed", "EncryptedPrivateKey", "FullName", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "PublicKey", "SecurityStamp", "TwoFactorEnabled", "UpdatedDate", "UserName" },
-                values: new object[] { "11872d42-f137-430d-a396-46498fc4e3a7", 0, null, "11872d42-f137-430d-a396-46498fc4e3a7", new DateTime(2024, 11, 18, 7, 53, 35, 724, DateTimeKind.Utc).AddTicks(5236), "admin@gmail.com", false, "nrJYiL6/e/g2lHpzTiAzoA==:gUBbEu0sX2nEDuv3uiE4XDrC/yjnjZPT1OHhIEuV3YwzUsd4x84+e2WDlxZwXczxnr46MVNtPtWTk9fRFf9C5pXiSurn3lmcWq55ojD4QGw0AV0hOK+uZaBPrm4pFE3FAZ5zI2QP0IMOkD8ZUdnPLwGyt+CuvrlxdmXu1gDNMi71ixo6ozU7ooKOrCHw0O51Q8BRaGdsnJFQDWRU3fzUBanJhHRo2VeBXoiayN4saz9M1Kth/HZfb9+C9zMaERmp2by49IxCBMY2xv2vsuQPUW59sP/LmQnRMW3CmeFbs5y5N/oayhfwkYL3gD6vdDorpLHsNvU6amB/18LsVggGgGobM8wThfODqiLyoikLUSM6JflpHxB9+k8dW6PK4IpvBIESzb4AqlYhtY2t7jgM1N2V9wBxKjsFuUtP+xvRlEta0wjl6JKEye+tkXDkjEBjCdUJX+sNXp//IVQwUot0ew8/tpPYiIfko1rN1ftufTZj9d2r5sEH/7AcaNxQDdCLrgRRoR82M02tpN/ob50da//GoPMn/kfDIrEz8ahNboDqS0X4BsGGbWOz7xHe/mt0ovlUaLS89rZ2S/kJWMWBccbsg+8I0fNc3MH+VeDmtvldfgqAgnNNROO/ZNh7xGUr1ZYm6iAh029Pdg7H6bh1/yU+/SS61rXbYaL6AZ5LNgZTiOhO1755G/wBxlJb6D5xRtctI037oGpvE/8h6JbxxXPdjPBeFYR9vrzTVH2kuDqA+XklsM617E4u5Ng0NFeO/e1GcUFe0ZRz1JZciaa4ic4uzukg4zUk8LZ5vv9YZx2QjJFKxUo8Yvy3zC2MWlrbSm+82o8UAwM/aPMpA8XD2oksvvy2qK8geY7S5OxvW3OZ+g4Ahlf+y/4+HNlWGoNAMQdeaEhvKa59/tvrUnfHFJ3UsGbIRF7D8tkMZRLicnh6iw05FlA1gY2LWNaDdgQbGYP8b8YiQ0rSKq5nLnHiyPHhuYxg92bFhzRn8t+f3CBdnEw+iuKbQs47zP2Ap2+qO4GJnSvD7ITWfDde2TZX7uSNuf6q/M8itzgtvQkpV/Ukp0CyBSNDn5T9fBNm1WB5X0+kCdThQYhPqM7uN7j1KZ8YgthsTMmjNYD2WrMz7EvwfnY/EEB3tuztqAVWUFXqZtE/FzGc5yBSR7H69p6gfisUWypl/ADB0H/1GFgTOqMCHimyDZrEu6TtKwpXIhToMrKunsjOgKWXP/tmXIkeVhgziT6I7w0ZUqzMq4HONAt+9Mkua5Jk38HJFSn4NvwiPRbT3jczoWPfAONXseR7balEjL+IpsBjtE2sEisIOlus9IPfpjFYMvvyUEZO1rMNAIg77bDW/Cra4pQd5dTsVt5AUKQcLxy818FiAylQV6ohBZIoYXPPDXpTDukIL73Y7snVpzaC2JPALfF8ZYT4IVgnnsfpeevK6FGZPsexwqe0vwr6tSl33l1zgZDdn8PRMAHyo0GJb8dqmbsH3/1r8uUINEs9Z0E5Sf3n2sPaoppfxlIwFLVjoHRN51h5DYWqwYbCJLwx0O8DWHL4pgKtU6mdTBev0bqb1LspEJVEMaepWL4cjQ6Gc4pfKg0tDR5Ja/zpL+3NiSLAPIH3GZ+AJNmQL2yW8ztMzSq0cK/+7LPn5I6fJfSzz/xEUNEIX82RnoBohMcfFWYqdYL/y78QOm9HQyZTW9OPkct4fx5t4j5otaC9lxxBESWPR15WYB2qjmyozNxcRXcK4okkh79NBJuT9sUXwyfYonbBLnZk0N8kG0O/Hd2VPu7DMrLbhoAY/o89mwvkavDVluqkUDe5aO/JiEnhJMbffvpMvljg18zthCOQL0OMowxcVVLk2Lh7RC3JgPglVDbWxkX9faSzctLeKS2HOWPeDnlpua47TZgHx7FZ2Dhe99SGVmuVMnnDfBRiuVc4rco9Ctb8FkiFBsIF3uWByVB3XqWxhym0vwBMnCfSeiBNJVvFjxNbMmsZbdCLXFKw2KHI2rzvVhpvLo/cmn1z4D1I85Yd++5r772ZLTB40smgHoxvlZdo7E3T3sgUUIAh77dBpjiI4N2DxK/Nkyhc/Nl7fLpc2xssFDBmHSxBV73yINbrrBGGEBVdunrf5BfWfPTr+KaOZY1VlWIwaXmUKBDWtqsU+qTV2Gs5enHLAdPMcQLKZVmMzQTMh+eosd7WTKXQHpinQo+iKLYHijj//G+5EOyalANMv5gPo24fvKZy0o4MGTxgczAR", "Admin", false, null, "ADMIN@GMAIL.COM", "ADMIN@GMAIL.COM", "AQAAAAIAAYagAAAAEMeVbzVRLIFbCIbDMUfqQK2ZAvWaVSW8rTO+Z7y3z/2hGOoZnXwZjGv8OZPFnv6Q2w==", null, false, "<RSAKeyValue><Modulus>xF0kkphslzIuc1TJvX5u2MzmLjyOo/mJAdretmlw05lQo9XWDFtxr2ydZuw8PJnJT436LZRxoYr86YpAG9nMHPlb/1VVOsQ3/DCt5QBoBYqqueNvHJtg9L0HVeVMPjRa3xE9ctwoKIfguEk+zmxIoDEETKyF8jz0L8T3T0VD0GWk02rN1vMrbBslfGwFbVS5Ick4V1NxpALJ1eYCCeKkoFUsFUHVOhI2P9XeSgkKZAs0/AGERmgji77T7US56wsOQmq/rmFmqksK8CJzMCbnFdWmwwcyDdYXU4L8/KTNFGENk40NxAnn8JiwzStwal9w95+qOXyHMRX+xGWvc6vIBQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>", "11872d42-f137-430d-a396-46498fc4e3a7", false, new DateTime(2024, 11, 18, 7, 53, 35, 724, DateTimeKind.Utc).AddTicks(5241), "admin@gmail.com" });
+                values: new object[] { "11872d42-f137-430d-a396-46498fc4e3a7", 0, null, "11872d42-f137-430d-a396-46498fc4e3a7", new DateTime(2024, 11, 30, 16, 31, 1, 803, DateTimeKind.Utc).AddTicks(9899), "admin@gmail.com", false, "Os/K4Onz29xH6k/6Nftq4Q==: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", "Admin", false, null, "ADMIN@GMAIL.COM", "ADMIN@GMAIL.COM", "AQAAAAIAAYagAAAAEC3PkcEsJdj3f1E5Gpy91vQ0Qmm1TFVQknG0trl8ydaXY8/uQQfMaQNMyimWlCHg4A==", null, false, "<RSAKeyValue><Modulus>yAEht/KzvWskIa+U/4djegg5cZ4b+e3FebvdDgCLEyhk67vgUzqL0G5fGw+IsXe/0NDwkugp10Y81qSMBVkv0bnty8U+RIQe5FVs9oVhXYLmSL6txFmuxqWZVGBjtHqhZLdOjx4w3qk08yw3ryu8Fvykvkgo7PbuuJs1WIp2PAmqa2Pe+l2Npsl9R/hv9d9h0crXi1rCc3IvyYuyvIu4gcfsc2WAG+3Ur8CWHeykykAuz8IJpBiEE9vf7bCsMgpK6DkqUg0B6BRODWpaLn8982+/G5JUelUMwYst6sS32dtA2PiOJCEpowO2B2NtwnhjQsxUPBoVk5uuz8IZIopvuQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>", "11872d42-f137-430d-a396-46498fc4e3a7", false, new DateTime(2024, 11, 30, 16, 31, 1, 803, DateTimeKind.Utc).AddTicks(9904), "admin@gmail.com" });
 
             migrationBuilder.InsertData(
                 table: "UserRoles",
@@ -364,9 +374,31 @@ namespace BlogAngular.Api.Migrations
                 column: "CategoriesId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BlogPosts_AuthorId",
+                table: "BlogPosts",
+                column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BlogPosts_UrlHandle",
+                table: "BlogPosts",
+                column: "UrlHandle",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_UrlHandle",
+                table: "Categories",
+                column: "UrlHandle",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Comments_BlogPostId",
                 table: "Comments",
                 column: "BlogPostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_ParentId",
+                table: "Comments",
+                column: "ParentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_UserId",

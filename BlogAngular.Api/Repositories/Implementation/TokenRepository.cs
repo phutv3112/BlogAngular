@@ -1,4 +1,5 @@
-﻿using BlogAngular.Api.Models.Domain;
+﻿using BlogAngular.Api.Models;
+using BlogAngular.Api.Models.Domain;
 using BlogAngular.Api.Repositories.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -12,36 +13,15 @@ namespace BlogAngular.Api.Repositories.Implementation
     public class TokenRepository : ITokenRepository
     {
         private readonly IConfiguration _configuration;
+        private readonly UserManager<AppUser> _userManager;
 
-        public TokenRepository(IConfiguration configuration)
+        public TokenRepository(IConfiguration configuration, UserManager<AppUser> userManager)
         {
             _configuration = configuration;
+            _userManager = userManager;
         }
-        //public string CreateJwtToken(AppUser user, List<string> roles)
-        //{
-        //    // Create Claims
-        //    var claims = new List<Claim>
-        //    {
-        //        new Claim(ClaimTypes.Email, user.Email)
-        //    };
-
-        //    claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-
-        //    // Jwt security
-        //    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-        //    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        //    var token = new JwtSecurityToken(
-        //        issuer: _configuration["Jwt:Issuer"],
-        //        audience: _configuration["Jwt:Audience"],
-        //        claims: claims,
-        //        expires: DateTime.Now.AddMinutes(15),
-        //        signingCredentials: credentials
-        //        );
-
-        //    return new JwtSecurityTokenHandler().WriteToken(token);
-        //}
-        public string CreateJwtToken(AppUser user, List<string> roles)
+        
+        public async Task<TokenPair> CreateJwtToken(AppUser user, List<string> roles)
         {
             // Create claims
             var claims = new List<Claim>
@@ -66,11 +46,29 @@ namespace BlogAngular.Api.Repositories.Implementation
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(15),
+                expires: DateTime.UtcNow.AddMinutes(5),
                 signingCredentials: signingCredentials
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var refreshToken = Guid.NewGuid().ToString();
+
+            if (user.RefreshToken != null)
+            {
+                user.RefreshToken = refreshToken;
+                await _userManager.UpdateAsync(user);
+            }
+            else
+            {
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
+                await _userManager.UpdateAsync(user);
+            }
+            var tokenPair = new TokenPair
+            {
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken = refreshToken
+            };
+            return tokenPair;
         }
     }
 }
